@@ -1,0 +1,10 @@
+node_modules/
+public/app.js
+public/processor.js
+public/styles.css
+public/index.html
+public/*.js.map
+dist/
+.DS_Store
+*.log
+.env
