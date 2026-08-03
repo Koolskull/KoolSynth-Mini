@@ -7,7 +7,8 @@ import { transport } from "../audio/transport";
 import { AlgoPicker } from "./AlgoDiagram";
 import { HelpModal } from "./HelpModal";
 import { Keyboard } from "./Keyboard";
-import { LINK_MODES, OpPanel } from "./OpPanel";
+import { LinkModePicker } from "./LinkModePicker";
+import { OpPanel } from "./OpPanel";
 import { PixelKnob } from "./PixelKnob";
 
 const FX_TYPES: FxType[] = ["none", "reverb", "delay", "chorus", "phaser", "distortion"];
@@ -110,18 +111,11 @@ export function App() {
                     <span className="link-chip-id">
                       {link.src + 1}→{link.dst + 1}
                     </span>
-                    <select
-                      className="osc-wave link-mode"
+                    <LinkModePicker
                       value={link.mode}
-                      onChange={(e) => setLink(i, e.target.value as LinkMode)}
-                      title="Link mode"
-                    >
-                      {LINK_MODES.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
+                      edgeLabel={`${link.src + 1}→${link.dst + 1}`}
+                      onChange={(mode) => setLink(i, mode)}
+                    />
                     <PixelKnob
                       size={36}
                       label="Amt"

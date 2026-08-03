@@ -1,9 +1,4 @@
-import type {
-  LinkMode,
-  OperatorParams,
-  OpSource,
-  Waveform,
-} from "../../../../packages/dsp/src/types";
+import type { OperatorParams, OpSource, Waveform } from "../../../../packages/dsp/src/types";
 import { engineHost } from "../audio/engine-host";
 import { PixelKnob } from "./PixelKnob";
 
@@ -132,5 +127,3 @@ export function OpPanel({ index, op }: Props) {
     </div>
   );
 }
-
-export const LINK_MODES: LinkMode[] = ["fm", "am", "rm", "pd", "add"];

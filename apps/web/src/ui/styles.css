@@ -522,10 +522,173 @@ body.submenu-open .app > :not(.help-overlay) {
   color: var(--dim);
 }
 
-.link-mode {
-  max-width: 4.5em;
+/* Modulation type submenu */
+.mod-picker {
+  position: relative;
+  z-index: 20;
+}
+
+.mod-picker.is-open {
+  z-index: 55;
+}
+
+.mod-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 22px;
+  padding: 4px 6px;
+  margin: 0;
+  background: #000;
+  border: 1px solid var(--fg);
+  color: var(--fg);
+  cursor: pointer;
+  font: inherit;
+}
+
+.mod-trigger:hover {
+  background: #fff;
+  color: #000;
+}
+
+.mod-picker.is-open .mod-trigger {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+.mod-code {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  font-weight: normal;
+  line-height: 1;
+}
+
+.mod-menu {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(78dvh, 520px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+}
+
+.mod-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #fff;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.mod-menu-edge {
+  color: var(--dim);
+  letter-spacing: 0.04em;
+}
+
+.mod-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mod-menu-list li {
+  margin: 0;
+  border-bottom: 1px solid #333;
+}
+
+.mod-menu-list li:last-child {
+  border-bottom: none;
+}
+
+.mod-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 10px;
+  background: #000;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.mod-option:hover {
+  background: #111;
+}
+
+.mod-option.is-active {
+  background: #fff;
+  color: #000;
+}
+
+.mod-option-code {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.mod-option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mod-option-name {
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mod-option-blurb {
+  font-size: 8px;
+  line-height: 1.45;
+  color: #bbb;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.mod-option.is-active .mod-option-blurb {
+  color: #333;
+}
+
+.mod-option-hist {
   font-size: 7px;
-  padding: 2px 2px;
+  line-height: 1.4;
+  color: #777;
+  text-transform: none;
+  letter-spacing: 0;
+  border-top: 1px solid #222;
+  padding-top: 4px;
+  margin-top: 2px;
+}
+
+.mod-option.is-active .mod-option-hist {
+  color: #555;
+  border-top-color: #ccc;
 }
 
 .fx-slots {

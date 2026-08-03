@@ -36,7 +36,8 @@ export function HelpModal({ open, onClose }: Props) {
             <h3>Algorithm</h3>
             <p>
               Pick a DX7-style diagram (0–7). Filled boxes are carriers (to OUT); hollow are modulators.
-              Lines show flow. Under the strip, each edge has mode (fm/am/rm/pd/add) and amount.
+              Lines show flow. Tap an edge’s two-letter mod badge (FM, AM, RM, PD, AD) for a learning
+              menu — what it does plus a short history — then amount with the knob.
             </p>
           </section>
           <section>
