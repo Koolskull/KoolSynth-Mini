@@ -28,8 +28,9 @@ export function HelpModal({ open, onClose }: Props) {
           <section>
             <h3>Operators</h3>
             <p>
-              Four operators (OP1–4). Each can be wave, one-shot sample, or granular.
-              Load audio per-op when using sample/grain. Each has amp ADSR, filter + filter env, and Out mix.
+              Four operators (OP1–4). Tap WV/SM/GR for source type, SI/TR/SW… for waveforms (with
+              short lessons). Sample/grain open the bank: local cache first, device import ≤128KB
+              after you allow access. Amp ADSR, filter + filter env, Out mix per op.
             </p>
           </section>
           <section>

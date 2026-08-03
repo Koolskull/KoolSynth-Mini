@@ -1,9 +1,11 @@
-import type { OperatorParams, OpSource, Waveform } from "../../../../packages/dsp/src/types";
+import { useState } from "react";
+import type { OperatorParams } from "../../../../packages/dsp/src/types";
 import { engineHost } from "../audio/engine-host";
 import { PixelKnob } from "./PixelKnob";
+import { SampleBrowser } from "./SampleBrowser";
+import { SourcePicker } from "./SourcePicker";
+import { WaveformPicker } from "./WaveformPicker";
 
-const WAVES: Waveform[] = ["sine", "triangle", "saw", "square", "noise"];
-const SOURCES: OpSource[] = ["wave", "sample", "grain"];
 const KNOB = 48;
 
 interface Props {
@@ -13,51 +15,37 @@ interface Props {
 
 export function OpPanel({ index, op }: Props) {
   const set = (partial: Partial<OperatorParams>) => engineHost.setOperator(index, partial);
-
-  const onSample = async (file: File | null) => {
-    if (!file) return;
-    const id = await engineHost.loadSampleFile(file, `op${index}_${file.name}`);
-    set({ sampleId: id, source: op.source === "wave" ? "sample" : op.source });
-  };
+  const [browserOpen, setBrowserOpen] = useState(false);
+  const opLabel = `OP${index + 1}`;
+  const sampleName = op.sampleId ? engineHost.samples[op.sampleId] ?? "smp" : "load";
 
   return (
     <div className="osc-card">
       <header className="osc-head">
-        <span className="osc-title">OP{index + 1}</span>
-        <select
-          className="osc-wave"
+        <span className="osc-title">{opLabel}</span>
+        <SourcePicker
           value={op.source}
-          onChange={(e) => set({ source: e.target.value as OpSource })}
-          title="Source"
-        >
-          {SOURCES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+          opLabel={opLabel}
+          onChange={(source) => set({ source })}
+        />
         {op.source === "wave" ? (
-          <select
-            className="osc-wave"
+          <WaveformPicker
             value={op.waveform}
-            onChange={(e) => set({ waveform: e.target.value as Waveform })}
-          >
-            {WAVES.map((w) => (
-              <option key={w} value={w}>
-                {w}
-              </option>
-            ))}
-          </select>
+            opLabel={opLabel}
+            onChange={(waveform) => set({ waveform })}
+          />
         ) : (
-          <label className="btn sample-btn">
-            {op.sampleId ? engineHost.samples[op.sampleId] ?? "smp" : "load"}
-            <input
-              type="file"
-              accept="audio/*"
-              hidden
-              onChange={(e) => void onSample(e.target.files?.[0] ?? null)}
-            />
-          </label>
+          <button
+            type="button"
+            className="edu-trigger sample-trigger"
+            title="Sample browser"
+            onClick={() => setBrowserOpen(true)}
+          >
+            <span className="edu-code sample-trigger-label">
+              {op.sampleId ? "FL" : "LD"}
+            </span>
+            <span className="sample-trigger-name">{sampleName}</span>
+          </button>
         )}
         <label className="toggle osc-on">
           <input
@@ -124,6 +112,17 @@ export function OpPanel({ index, op }: Props) {
           <PixelKnob size={KNOB} label="R" value={op.filterEnv.release} min={0} max={3} step={0.01} displayValue={op.filterEnv.release.toFixed(2)} onChange={(v) => set({ filterEnv: { ...op.filterEnv, release: v } })} />
         </div>
       </div>
+
+      <SampleBrowser
+        open={browserOpen}
+        opIndex={index}
+        currentId={op.sampleId}
+        onClose={() => setBrowserOpen(false)}
+        onPick={(sampleId, name) => {
+          engineHost.samples[sampleId] = name;
+          set({ sampleId });
+        }}
+      />
     </div>
   );
 }

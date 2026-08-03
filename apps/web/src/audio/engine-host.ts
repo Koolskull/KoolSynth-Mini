@@ -176,12 +176,12 @@ export class EngineHost {
     this.emit();
   }
 
-  async loadSampleFile(file: File, id?: string): Promise<string> {
+  /** Decode ArrayBuffer and push PCM into the worklet sample bank */
+  async loadSampleBuffer(name: string, arrayBuffer: ArrayBuffer, id?: string): Promise<string> {
     await this.resume();
-    const sid = id ?? `smp_${Date.now().toString(36)}`;
-    const ab = await file.arrayBuffer();
     if (!this.ctx) throw new Error("no audio context");
-    const audio = await this.ctx.decodeAudioData(ab.slice(0));
+    const sid = id ?? `smp_${Date.now().toString(36)}`;
+    const audio = await this.ctx.decodeAudioData(arrayBuffer.slice(0));
     const ch = audio.getChannelData(0);
     const copy = new Float32Array(ch.length);
     copy.set(ch);
@@ -189,9 +189,19 @@ export class EngineHost {
       { type: "loadSample", id: sid, sampleRate: audio.sampleRate, channelData: copy },
       [copy.buffer],
     );
-    this.samples[sid] = file.name;
+    this.samples[sid] = name;
     this.emit();
     return sid;
+  }
+
+  async loadSampleFile(file: File, id?: string): Promise<string> {
+    const ab = await file.arrayBuffer();
+    return this.loadSampleBuffer(file.name, ab, id);
+  }
+
+  /** Exposed for UI that needs the live AudioContext after resume */
+  get audioContext(): AudioContext | null {
+    return this.ctx;
   }
 }
 

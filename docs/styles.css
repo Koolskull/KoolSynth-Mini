@@ -522,17 +522,20 @@ body.submenu-open .app > :not(.help-overlay) {
   color: var(--dim);
 }
 
-/* Modulation type submenu */
-.mod-picker {
+/* Educational pickers (mod / source / wave) + sample browser */
+.mod-picker,
+.edu-picker {
   position: relative;
   z-index: 20;
 }
 
-.mod-picker.is-open {
+.mod-picker.is-open,
+.edu-picker.is-open {
   z-index: 55;
 }
 
-.mod-trigger {
+.mod-trigger,
+.edu-trigger {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -545,27 +548,56 @@ body.submenu-open .app > :not(.help-overlay) {
   color: var(--fg);
   cursor: pointer;
   font: inherit;
+  gap: 4px;
+  max-width: 7.5em;
 }
 
-.mod-trigger:hover {
+.mod-trigger:hover,
+.edu-trigger:hover {
   background: #fff;
   color: #000;
 }
 
-.mod-picker.is-open .mod-trigger {
+.mod-picker.is-open .mod-trigger,
+.edu-picker.is-open .edu-trigger {
   background: #fff;
   color: #000;
   border-color: #fff;
 }
 
-.mod-code {
+.mod-code,
+.edu-code {
   font-size: 9px;
   letter-spacing: 0.06em;
   font-weight: normal;
   line-height: 1;
+  flex-shrink: 0;
 }
 
-.mod-menu {
+.sample-trigger {
+  max-width: 9em;
+  justify-content: flex-start;
+  padding: 4px 5px;
+}
+
+.sample-trigger-label {
+  border: 1px solid currentColor;
+  padding: 2px 3px;
+  font-size: 8px;
+}
+
+.sample-trigger-name {
+  font-size: 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.mod-menu,
+.edu-menu {
   position: fixed;
   left: 50%;
   top: 50%;
@@ -578,7 +610,8 @@ body.submenu-open .app > :not(.help-overlay) {
   z-index: 50;
 }
 
-.mod-menu-head {
+.mod-menu-head,
+.edu-menu-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -592,12 +625,14 @@ body.submenu-open .app > :not(.help-overlay) {
   flex-shrink: 0;
 }
 
-.mod-menu-edge {
+.mod-menu-edge,
+.edu-menu-meta {
   color: var(--dim);
   letter-spacing: 0.04em;
 }
 
-.mod-menu-list {
+.mod-menu-list,
+.edu-menu-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -605,16 +640,19 @@ body.submenu-open .app > :not(.help-overlay) {
   flex-direction: column;
 }
 
-.mod-menu-list li {
+.mod-menu-list li,
+.edu-menu-list li {
   margin: 0;
   border-bottom: 1px solid #333;
 }
 
-.mod-menu-list li:last-child {
+.mod-menu-list li:last-child,
+.edu-menu-list li:last-child {
   border-bottom: none;
 }
 
-.mod-option {
+.mod-option,
+.edu-option {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -629,16 +667,19 @@ body.submenu-open .app > :not(.help-overlay) {
   font: inherit;
 }
 
-.mod-option:hover {
+.mod-option:hover,
+.edu-option:hover {
   background: #111;
 }
 
-.mod-option.is-active {
+.mod-option.is-active,
+.edu-option.is-active {
   background: #fff;
   color: #000;
 }
 
-.mod-option-code {
+.mod-option-code,
+.edu-option-code {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
@@ -650,20 +691,23 @@ body.submenu-open .app > :not(.help-overlay) {
   letter-spacing: 0.04em;
 }
 
-.mod-option-body {
+.mod-option-body,
+.edu-option-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
 }
 
-.mod-option-name {
+.mod-option-name,
+.edu-option-name {
   font-size: 9px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-.mod-option-blurb {
+.mod-option-blurb,
+.edu-option-blurb {
   font-size: 8px;
   line-height: 1.45;
   color: #bbb;
@@ -671,11 +715,13 @@ body.submenu-open .app > :not(.help-overlay) {
   letter-spacing: 0;
 }
 
-.mod-option.is-active .mod-option-blurb {
+.mod-option.is-active .mod-option-blurb,
+.edu-option.is-active .edu-option-blurb {
   color: #333;
 }
 
-.mod-option-hist {
+.mod-option-hist,
+.edu-option-hist {
   font-size: 7px;
   line-height: 1.4;
   color: #777;
@@ -686,9 +732,286 @@ body.submenu-open .app > :not(.help-overlay) {
   margin-top: 2px;
 }
 
-.mod-option.is-active .mod-option-hist {
+.mod-option.is-active .mod-option-hist,
+.edu-option.is-active .edu-option-hist {
   color: #555;
   border-top-color: #ccc;
+}
+
+/* Sample browser */
+.browser-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  pointer-events: none;
+}
+
+.browser-root .submenu-scrim {
+  pointer-events: auto;
+}
+
+.browser-panel {
+  position: relative;
+  z-index: 101;
+  pointer-events: auto;
+  width: min(440px, 100%);
+  max-height: min(84dvh, 580px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.browser-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #fff;
+  flex-shrink: 0;
+}
+
+.browser-head-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.browser-title {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.browser-meta {
+  font-size: 7px;
+  color: var(--dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.browser-tabs {
+  display: flex;
+  border-bottom: 1px solid #fff;
+  flex-shrink: 0;
+}
+
+.browser-tab {
+  flex: 1;
+  margin: 0;
+  padding: 8px 6px;
+  background: #000;
+  border: none;
+  border-right: 1px solid #333;
+  color: var(--dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.browser-tab:last-child {
+  border-right: none;
+}
+
+.browser-tab:hover {
+  color: #fff;
+  background: #0a0a0a;
+}
+
+.browser-tab.is-active {
+  background: #fff;
+  color: #000;
+}
+
+.browser-body {
+  padding: 10px 12px 12px;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.browser-hint {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.45;
+  color: #999;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.browser-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #fff;
+  min-height: 140px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.browser-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 12px;
+  color: var(--dim);
+  font-size: 8px;
+  line-height: 1.5;
+  text-transform: none;
+}
+
+.browser-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  background: #000;
+  border: none;
+  border-bottom: 1px solid #222;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.browser-row:last-child {
+  border-bottom: none;
+}
+
+.browser-row:hover {
+  background: #111;
+}
+
+.browser-row.is-active {
+  background: #fff;
+  color: #000;
+}
+
+.browser-row-name {
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.browser-row-meta {
+  font-size: 7px;
+  color: #777;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.browser-row.is-active .browser-row-meta {
+  color: #444;
+}
+
+.browser-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.browser-permission {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0 4px;
+}
+
+.browser-perm-icon {
+  font-size: 18px;
+  letter-spacing: 0.2em;
+  color: #fff;
+}
+
+.browser-perm-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.browser-perm-body {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.55;
+  color: #bbb;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.browser-perm-body strong {
+  color: #fff;
+  font-weight: normal;
+}
+
+.browser-perm-list {
+  margin: 0;
+  padding: 0 0 0 14px;
+  font-size: 8px;
+  line-height: 1.55;
+  color: #999;
+  text-transform: none;
+}
+
+.browser-import {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.browser-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 160px;
+  border: 1px dashed #fff;
+  padding: 16px;
+  background: #000;
+}
+
+.browser-drop.is-drag {
+  background: #111;
+  border-style: solid;
+}
+
+.browser-drop-title {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.browser-drop-sub {
+  font-size: 8px;
+  color: var(--dim);
+}
+
+.browser-error {
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #fff;
+  font-size: 8px;
+  line-height: 1.4;
+  color: #fff;
+  background: #000;
+  text-transform: none;
 }
 
 .fx-slots {
