@@ -24,10 +24,10 @@ export function HelpModal({ open, onClose }: Props) {
             </p>
           </section>
           <section>
-            <h3>Algorithm · Links</h3>
+            <h3>Algorithm</h3>
             <p>
-              A0–A7 are Genesis-style 4-op connection presets. Each edge OP→OP has a synthesis mode
-              (fm / am / rm / pd / add) and an amount knob. Out level on each operator feeds the bus.
+              Pick a DX7-style diagram (0–7). Filled boxes are carriers (to OUT); hollow are modulators.
+              Lines show flow. Under the strip, each edge has mode (fm/am/rm/pd/add) and amount.
             </p>
           </section>
           <section>

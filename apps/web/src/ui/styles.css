@@ -329,42 +329,103 @@ select {
   }
 }
 
-.algo-row {
+/* DX7-style algo picker — compact pixel diagrams */
+.panel-algo {
+  padding: 8px 10px;
+}
+
+.panel-algo h2 {
+  margin-bottom: 8px;
+}
+
+.algo-picker {
   display: flex;
   flex-wrap: wrap;
+  gap: 0;
   border: 1px solid var(--fg);
-  margin-bottom: 10px;
 }
 
-.algo-row .mode-btn {
-  flex: 1;
-  min-width: 40px;
+.algo-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 3px 3px;
+  margin: 0;
+  background: #000;
+  border: none;
   border-right: 1px solid var(--fg);
+  cursor: pointer;
+  color: var(--fg);
+  flex: 1 1 0;
+  min-width: 42px;
 }
 
-.algo-row .mode-btn:last-child {
+.algo-thumb:last-child {
   border-right: none;
 }
 
-.links-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.algo-thumb:hover {
+  background: #0a0a0a;
 }
 
-.link-row {
+.algo-thumb.is-active {
+  background: #fff;
+  color: #000;
+}
+
+.algo-thumb.is-active .algo-thumb-num {
+  color: #000;
+}
+
+.algo-thumb-num {
+  font-size: 7px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+}
+
+.algo-diagram {
+  display: block;
+  width: 35px;
+  height: 30px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #000;
+}
+
+.algo-thumb.is-active .algo-diagram {
+  outline: 1px solid #000;
+}
+
+.links-compact {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--fg);
-  padding: 6px 8px;
+  gap: 4px;
+  margin-top: 8px;
+  align-items: flex-end;
 }
 
-.link-label {
-  font-size: 8px;
-  text-transform: uppercase;
-  min-width: 5.5em;
+.link-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--fg);
+  padding: 4px 4px 2px;
+  min-width: 52px;
+}
+
+.link-chip-id {
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+}
+
+.link-mode {
+  max-width: 4.5em;
+  font-size: 7px;
+  padding: 2px 2px;
 }
 
 .fx-slots {

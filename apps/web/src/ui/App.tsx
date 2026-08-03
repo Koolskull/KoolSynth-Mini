@@ -4,6 +4,7 @@ import { engineHost } from "../audio/engine-host";
 import { midiInput } from "../audio/midi-input";
 import { noteBus } from "../audio/note-bus";
 import { transport } from "../audio/transport";
+import { AlgoPicker } from "./AlgoDiagram";
 import { HelpModal } from "./HelpModal";
 import { Keyboard } from "./Keyboard";
 import { LINK_MODES, OpPanel } from "./OpPanel";
@@ -93,53 +94,45 @@ export function App() {
       </header>
 
       <div className="main">
-        <section className="panel">
-          <h2>Algorithm · Links</h2>
-          <div className="algo-row">
-            {Array.from({ length: 8 }, (_, a) => (
-              <button
-                key={a}
-                type="button"
-                className={`mode-btn${patch.algorithm === a ? " active" : ""}`}
-                onClick={() => engineHost.setPatch({ algorithm: a })}
-              >
-                A{a}
-              </button>
-            ))}
-          </div>
-          <div className="links-list">
-            {patch.links.length === 0 && (
-              <span className="osc-sub-label">parallel — no mod edges (A7)</span>
-            )}
-            {patch.links.map((link, i) => (
-              <div className="link-row" key={`${link.src}-${link.dst}-${i}`}>
-                <span className="link-label">
-                  OP{link.src + 1}→OP{link.dst + 1}
-                </span>
-                <select
-                  className="osc-wave"
-                  value={link.mode}
-                  onChange={(e) => setLink(i, e.target.value as LinkMode)}
-                >
-                  {LINK_MODES.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-                <PixelKnob
-                  size={40}
-                  label="Amt"
-                  value={link.amount}
-                  min={0}
-                  max={4}
-                  step={0.01}
-                  displayValue={link.amount.toFixed(2)}
-                  onChange={(v) => setLink(i, undefined, v)}
-                />
-              </div>
-            ))}
-          </div>
+        <section className="panel panel-algo">
+          <h2>Algo</h2>
+          <AlgoPicker
+            algorithm={patch.algorithm}
+            onSelect={(a) => engineHost.setPatch({ algorithm: a })}
+          />
+          {patch.links.length > 0 && (
+            <div className="links-compact">
+              {patch.links.map((link, i) => (
+                <div className="link-chip" key={`${link.src}-${link.dst}-${i}`}>
+                  <span className="link-chip-id">
+                    {link.src + 1}→{link.dst + 1}
+                  </span>
+                  <select
+                    className="osc-wave link-mode"
+                    value={link.mode}
+                    onChange={(e) => setLink(i, e.target.value as LinkMode)}
+                    title="Link mode"
+                  >
+                    {LINK_MODES.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                  <PixelKnob
+                    size={36}
+                    label="Amt"
+                    value={link.amount}
+                    min={0}
+                    max={4}
+                    step={0.01}
+                    displayValue={link.amount.toFixed(1)}
+                    onChange={(v) => setLink(i, undefined, v)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="panel">
