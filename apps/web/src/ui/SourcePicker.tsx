@@ -38,9 +38,9 @@ export const SOURCE_INFO: Record<OpSource, Info> = {
     code: "GR",
     name: "Granular",
     blurb:
-      "Splices the file into tiny windows that travel at a set speed — freeze, smear, or scan through a sound while notes still pitch it.",
+      "Splices the file into tiny windows that travel at a set speed — freeze, smear, or scan through a sound while notes still pitch it. More playful and odd than plain time-stretch: grains can scatter, reverse direction of travel, and recombine into textures stretch alone won’t invent.",
     history:
-      "Granular ideas trace to Gabor and Xenakis; real-time grain engines arrived with computers and modern DAW plugins.",
+      "Goldie is a legendary DnB OG who helped pioneer a break-mangling stretch sound that felt rare then — often with studio “guitar” gear like the Eventide H3000 — even though related tools existed earlier on samplers. True granular lineage runs Gabor → Xenakis → computer music; experimental grains push further into scatter and smear than classic timestretch.",
   },
 };
 
