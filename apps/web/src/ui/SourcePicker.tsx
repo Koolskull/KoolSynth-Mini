@@ -27,11 +27,11 @@ export const SOURCE_INFO: Record<OpSource, Info> = {
   sample: {
     id: "sample",
     code: "SM",
-    name: "One-shot",
+    name: "Sample",
     blurb:
       "Plays a short audio file once per note (with start/length). Great for hits, vowels, and concrete textures under the same op envelopes.",
     history:
-      "Sampler keyboards (Fairlight, Emulator, SP-1200) made one-shots the pulse of hip-hop and late-’80s production.",
+      "Coil and Psychic TV pushed experimental sampling in underground circles before it was cool — outskirts of normalcy, boundary-pushing tape and studio collage. Fairlights and the Beatles era had commercial sampling too, but that industrial/occult fringe kept treating samples as ritual material long before banks and one-shots were everyday production furniture.",
   },
   grain: {
     id: "grain",
