@@ -8,7 +8,8 @@ import { algorithmEdges, algorithmOuts } from "../../../../packages/dsp/src/type
 /** Grid units (each cell is SCALE px). Diagram is GW × GH cells. */
 const GW = 7;
 const GH = 6;
-const SCALE = 5; // → 35×30 canvas (compact)
+/** Pixel size of one grid cell — larger for readable DX7-style cards */
+const SCALE = 12; // → 84×72 canvas
 
 type Pt = { x: number; y: number };
 
@@ -104,46 +105,54 @@ function wire(
   vline(ctx, bx, midY, by);
 }
 
-/** 3×5 pixel digits 1–4 */
+/** 5×7 pixel digits 1–4 (scaled for larger boxes) */
 const DIGITS: Record<string, number[][]> = {
   "1": [
-    [0, 1, 0],
-    [1, 1, 0],
-    [0, 1, 0],
-    [0, 1, 0],
-    [1, 1, 1],
+    [0, 0, 1, 0, 0],
+    [0, 1, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 1, 1, 1, 0],
   ],
   "2": [
-    [1, 1, 1],
-    [0, 0, 1],
-    [1, 1, 1],
-    [1, 0, 0],
-    [1, 1, 1],
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 1, 1, 0],
+    [0, 1, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1],
   ],
   "3": [
-    [1, 1, 1],
-    [0, 0, 1],
-    [0, 1, 1],
-    [0, 0, 1],
-    [1, 1, 1],
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 1, 1, 0],
+    [0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
   ],
   "4": [
-    [1, 0, 1],
-    [1, 0, 1],
-    [1, 1, 1],
-    [0, 0, 1],
-    [0, 0, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 1, 1, 0],
+    [0, 1, 0, 1, 0],
+    [1, 0, 0, 1, 0],
+    [1, 1, 1, 1, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 0, 1, 0],
   ],
 };
 
-function drawDigit(ctx: CanvasRenderingContext2D, cx: number, cy: number, d: string) {
+function drawDigit(ctx: CanvasRenderingContext2D, cx: number, cy: number, d: string, color = "#fff") {
   const g = DIGITS[d];
   if (!g) return;
-  const ox = cx - 1;
-  const oy = cy - 2;
-  for (let y = 0; y < 5; y++) {
-    for (let x = 0; x < 3; x++) {
-      if (g[y]![x]) setPx(ctx, ox + x, oy + y);
+  const ox = cx - 2;
+  const oy = cy - 3;
+  for (let y = 0; y < 7; y++) {
+    for (let x = 0; x < 5; x++) {
+      if (g[y]![x]) setPx(ctx, ox + x, oy + y, color);
     }
   }
 }
@@ -157,8 +166,8 @@ function boxCenter(layout: Pt[], op: number): { px: number; py: number } {
   };
 }
 
-const BOX_W = 9;
-const BOX_H = 9;
+const BOX_W = 15;
+const BOX_H = 15;
 
 function drawBox(
   ctx: CanvasRenderingContext2D,
@@ -181,25 +190,7 @@ function drawBox(
     setPx(ctx, x0, y);
     setPx(ctx, x0 + BOX_W - 1, y);
   }
-  // digit (invert color when box filled)
-  if (invert) {
-    // punch digit by black pixels
-    const g = DIGITS[label];
-    if (g) {
-      const ox = cx - 1;
-      const oy = cy - 2;
-      for (let y = 0; y < 5; y++) {
-        for (let x = 0; x < 3; x++) {
-          if (g[y]![x]) {
-            ctx.fillStyle = "#000";
-            ctx.fillRect(ox + x, oy + y, 1, 1);
-          }
-        }
-      }
-    }
-  } else {
-    drawDigit(ctx, cx, cy, label);
-  }
+  drawDigit(ctx, cx, cy, label, invert ? "#000" : "#fff");
 }
 
 function paintAlgo(ctx: CanvasRenderingContext2D, algo: number, selected: boolean) {

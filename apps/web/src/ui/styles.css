@@ -367,14 +367,14 @@ select {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 4px 5px 3px;
+  gap: 3px;
+  padding: 6px 8px 5px;
   margin: 0;
   background: #000;
   border: 1px solid var(--fg);
   cursor: pointer;
   color: var(--fg);
-  min-width: 44px;
+  min-width: 96px;
 }
 
 .algo-trigger:hover {
@@ -401,7 +401,7 @@ select {
   border: 1px solid var(--fg);
   background: #000;
   z-index: 30;
-  min-width: 168px;
+  min-width: 360px;
   box-shadow: 4px 4px 0 #000;
 }
 
@@ -409,8 +409,8 @@ select {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 4px 3px 3px;
+  gap: 3px;
+  padding: 6px 5px 5px;
   margin: 0;
   background: #000;
   border: none;
@@ -418,7 +418,7 @@ select {
   border-bottom: 1px solid var(--fg);
   cursor: pointer;
   color: var(--fg);
-  min-width: 40px;
+  min-width: 88px;
 }
 
 .algo-thumb:nth-child(4n) {
@@ -451,8 +451,8 @@ select {
 
 .algo-diagram {
   display: block;
-  width: 35px;
-  height: 30px;
+  width: 84px;
+  height: 72px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   background: #000;
