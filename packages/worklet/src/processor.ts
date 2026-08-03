@@ -12,8 +12,14 @@ export type WorkletInMessage =
   | { type: "setPatch"; patch: Partial<Patch> }
   | { type: "setMaster"; master: Partial<MasterParams> }
   | { type: "loadPatch"; patch: Patch }
-  /** Pitch bend amount −1…+1 (smoothed by patch.pitchBendLegato) */
   | { type: "setPitchBend"; amount: number }
+  | {
+      type: "loadSample";
+      id: string;
+      sampleRate: number;
+      channelData: Float32Array;
+    }
+  | { type: "clearSample"; id: string }
   | { type: "requestState" };
 
 export type WorkletOutMessage =
@@ -46,8 +52,6 @@ class KoolSynthProcessor extends AudioWorkletProcessor {
         this.engine.allNotesOff();
         break;
       case "setPatch":
-        this.engine.setPatch(msg.patch);
-        break;
       case "loadPatch":
         this.engine.setPatch(msg.patch);
         break;
@@ -57,11 +61,17 @@ class KoolSynthProcessor extends AudioWorkletProcessor {
       case "setPitchBend":
         this.engine.setPitchBend(msg.amount);
         break;
+      case "loadSample":
+        this.engine.loadSample(msg.id, msg.channelData, msg.sampleRate);
+        break;
+      case "clearSample":
+        this.engine.clearSample(msg.id);
+        break;
       case "requestState":
         this.port.postMessage({
           type: "state",
           patch: this.engine.getPatch(),
-          master: { gain: 0.85, softClip: true },
+          master: { gain: 0.75, softClip: true },
         } satisfies WorkletOutMessage);
         break;
     }

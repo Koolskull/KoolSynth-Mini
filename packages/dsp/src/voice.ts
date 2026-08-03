@@ -1,44 +1,44 @@
 import { Adsr } from "./adsr";
 import { Oscillator } from "./oscillator";
 import { SvfFilter } from "./filter";
-import type { Patch } from "./types";
+import { SamplePlayer } from "./sample-player";
+import { GrainPlayer } from "./grain-player";
+import type { LinkMode, OperatorParams, Patch } from "./types";
 import { midiToHz } from "./types";
+
+export type SampleBank = Map<string, { data: Float32Array; sampleRate: number }>;
+
+function semiRatio(semi: number, cents: number): number {
+  return 2 ** ((semi + cents / 100) / 12);
+}
 
 export class Voice {
   note = -1;
   velocity = 0;
   private age = 0;
   private sampleRate: number;
-  private oscs: [Oscillator, Oscillator, Oscillator];
-  private ampEnvs: [Adsr, Adsr, Adsr];
-  private filterEnvs: [Adsr, Adsr, Adsr];
-  private filters: [SvfFilter, SvfFilter, SvfFilter];
+  private oscs: Oscillator[] = [];
+  private samples: SamplePlayer[] = [];
+  private grains: GrainPlayer[] = [];
+  private ampEnvs: Adsr[] = [];
+  private filterEnvs: Adsr[] = [];
+  private filters: SvfFilter[] = [];
   private targetHz = 440;
   private currentHz = 440;
   private velSmoothed = 0;
+  private bank: SampleBank;
 
-  constructor(sampleRate: number, patch: Patch) {
+  constructor(sampleRate: number, patch: Patch, bank: SampleBank) {
     this.sampleRate = sampleRate;
-    this.oscs = [
-      new Oscillator(sampleRate),
-      new Oscillator(sampleRate),
-      new Oscillator(sampleRate),
-    ];
-    this.ampEnvs = [
-      new Adsr(sampleRate, patch.oscillators[0].amp),
-      new Adsr(sampleRate, patch.oscillators[1].amp),
-      new Adsr(sampleRate, patch.oscillators[2].amp),
-    ];
-    this.filterEnvs = [
-      new Adsr(sampleRate, patch.oscillators[0].filterEnv),
-      new Adsr(sampleRate, patch.oscillators[1].filterEnv),
-      new Adsr(sampleRate, patch.oscillators[2].filterEnv),
-    ];
-    this.filters = [
-      new SvfFilter(sampleRate),
-      new SvfFilter(sampleRate),
-      new SvfFilter(sampleRate),
-    ];
+    this.bank = bank;
+    for (let i = 0; i < 4; i++) {
+      this.oscs.push(new Oscillator(sampleRate));
+      this.samples.push(new SamplePlayer());
+      this.grains.push(new GrainPlayer());
+      this.ampEnvs.push(new Adsr(sampleRate, patch.operators[i]!.amp));
+      this.filterEnvs.push(new Adsr(sampleRate, patch.operators[i]!.filterEnv));
+      this.filters.push(new SvfFilter(sampleRate));
+    }
   }
 
   get active(): boolean {
@@ -61,19 +61,54 @@ export class Voice {
     this.velocity = velocity;
     this.age = 0;
     this.targetHz = midiToHz(note);
-    if (patch.glide <= 0) {
-      this.currentHz = this.targetHz;
-    }
-    for (let i = 0; i < 3; i++) {
-      const op = patch.oscillators[i]!;
+    if (patch.glide <= 0) this.currentHz = this.targetHz;
+
+    for (let i = 0; i < 4; i++) {
+      const op = patch.operators[i]!;
       this.ampEnvs[i]!.setParams(op.amp);
       this.filterEnvs[i]!.setParams(op.filterEnv);
+
+      const pr = op.ratio * semiRatio(op.semi, op.cents);
+
+      if (op.source === "sample" || op.source === "grain") {
+        const entry = op.sampleId ? this.bank.get(op.sampleId) : undefined;
+        if (entry) {
+          this.samples[i]!.setBuffer(entry.data, entry.sampleRate);
+          this.grains[i]!.setBuffer(entry.data, entry.sampleRate);
+        } else {
+          this.samples[i]!.setBuffer(null, this.sampleRate);
+          this.grains[i]!.setBuffer(null, this.sampleRate);
+        }
+      }
+
+      if (op.source === "sample") {
+        this.samples[i]!.trigger(
+          this.sampleRate,
+          pr,
+          op.sampleStart,
+          op.sampleLength,
+          true,
+        );
+      } else if (op.source === "grain") {
+        this.grains[i]!.trigger(
+          this.sampleRate,
+          pr,
+          op.sampleStart,
+          op.sampleLength,
+          op.grainSize,
+          op.grainDensity,
+          op.grainSpeed,
+          op.grainSpray,
+        );
+      }
+
+      if (wasIdle && !soft) {
+        this.oscs[i]!.reset(0);
+        this.filters[i]!.reset();
+      }
     }
-    if (wasIdle && !soft) {
-      for (const o of this.oscs) o.reset(0);
-      for (const f of this.filters) f.reset();
-      this.velSmoothed = 0;
-    }
+    if (wasIdle && !soft) this.velSmoothed = 0;
+
     for (const e of this.ampEnvs) e.noteOn();
     for (const e of this.filterEnvs) e.noteOn();
   }
@@ -94,6 +129,9 @@ export class Voice {
     this.note = -1;
   }
 
+  /**
+   * 4-op graph: process in order 0..3; accumulate mod feeds for FM/AM/RM/PD/ADD.
+   */
   process(patch: Patch, bendRatio = 1): number {
     this.age++;
     if (!this.active) {
@@ -114,100 +152,115 @@ export class Voice {
     }
 
     const baseHz = this.currentHz * bendRatio;
-    const ops = patch.oscillators;
+    const raw = [0, 0, 0, 0];
+    const shaped = [0, 0, 0, 0];
+    const amp = [0, 0, 0, 0];
+    const fEnv = [0, 0, 0, 0];
 
-    // Advance all envelopes every sample (even disabled ops) for clean release
-    const amp = [
-      this.ampEnvs[0]!.process(),
-      this.ampEnvs[1]!.process(),
-      this.ampEnvs[2]!.process(),
-    ];
-    const fEnv = [
-      this.filterEnvs[0]!.process(),
-      this.filterEnvs[1]!.process(),
-      this.filterEnvs[2]!.process(),
-    ];
+    // Build incoming mod sums per dst by mode
+    const fmIn = [0, 0, 0, 0];
+    const amIn = [0, 0, 0, 0];
+    const rmIn = [0, 0, 0, 0];
+    const pdIn = [0, 0, 0, 0];
+    const addIn = [0, 0, 0, 0];
 
-    const shaped = (i: number, raw: number): number => {
-      const op = ops[i]!;
-      if (!op.enabled) return 0;
-      let s = raw * op.level * amp[i]!;
+    // Process operators in order; for FM serial, lower index should be modulator.
+    // We first compute raw with current fmIn (from previous ops), then register links to later ops.
+    for (let i = 0; i < 4; i++) {
+      amp[i] = this.ampEnvs[i]!.process();
+      fEnv[i] = this.filterEnvs[i]!.process();
+      const op = patch.operators[i]!;
+
+      if (!op.enabled) {
+        raw[i] = 0;
+        shaped[i] = 0;
+        continue;
+      }
+
+      const freq =
+        baseHz * op.ratio * semiRatio(op.semi, op.cents) + fmIn[i]! * baseHz;
+
+      let s = 0;
+      switch (op.source) {
+        case "sample":
+          s = this.samples[i]!.process();
+          break;
+        case "grain":
+          s = this.grains[i]!.process();
+          break;
+        case "wave":
+        default: {
+          const pdAmt = Math.min(1, op.pd + pdIn[i]!);
+          s = this.oscs[i]!.process(freq, op.waveform, op.pw, pdAmt, op.ratio);
+          break;
+        }
+      }
+
+      // AM / RM from modulators already processed
+      if (amIn[i]! !== 0) s *= 1 + amIn[i]!;
+      if (rmIn[i]! !== 0) s *= rmIn[i]!;
+      s += addIn[i]!;
+
+      raw[i] = s;
+
+      let y = s * op.level * amp[i]!;
       const cut =
         op.filter.cutoff * 2 ** (op.filter.envAmount * (fEnv[i]! - 0.5) * 2);
-      s = this.filters[i]!.process(s, op.filter, cut);
-      return s;
-    };
+      y = this.filters[i]!.process(y, op.filter, cut);
+      shaped[i] = y;
 
-    let dry = 0;
-
-    switch (patch.mode) {
-      case "fm": {
-        // Op2 → Op1 → Op0; each op filtered + amped
-        const r2 = this.oscs[2].process(
-          baseHz * ops[2].ratio * semiRatio(ops[2].semi, ops[2].cents),
-          ops[2].waveform,
-          ops[2].pw,
-        );
-        const m2 = shaped(2, r2);
-        // Use pre-filter amp for mod depth so FM still bites
-        const m2mod =
-          (ops[2].enabled ? r2 * ops[2].level * amp[2]! : 0) * ops[2].mod * baseHz;
-        const m1Freq =
-          baseHz * ops[1].ratio * semiRatio(ops[1].semi, ops[1].cents) + m2mod;
-        const r1 = this.oscs[1].process(m1Freq, ops[1].waveform, ops[1].pw);
-        const m1 = shaped(1, r1);
-        const m1mod =
-          (ops[1].enabled ? r1 * ops[1].level * amp[1]! : 0) * ops[1].mod * baseHz;
-        const cFreq =
-          baseHz * ops[0].ratio * semiRatio(ops[0].semi, ops[0].cents) + m1mod;
-        const r0 = this.oscs[0].process(cFreq, ops[0].waveform, ops[0].pw);
-        dry = shaped(0, r0) + m1 * 0.12 + m2 * 0.08;
-        break;
-      }
-      case "pd": {
-        for (let i = 0; i < 3; i++) {
-          const op = ops[i]!;
-          if (!op.enabled) {
-            continue;
-          }
-          const f = baseHz * op.ratio * semiRatio(op.semi, op.cents);
-          const raw = this.oscs[i]!.process(f, op.waveform, op.pw, op.mod, op.ratio);
-          dry += shaped(i, raw);
-        }
-        break;
-      }
-      case "additive": {
-        for (let i = 0; i < 3; i++) {
-          const op = ops[i]!;
-          if (!op.enabled) continue;
-          const harmonic = Math.max(1, Math.round(op.ratio));
-          const tilt = 1 / (1 + op.mod * harmonic);
-          const f = baseHz * harmonic * semiRatio(op.semi, op.cents);
-          const raw =
-            this.oscs[i]!.process(f, op.waveform === "noise" ? "sine" : op.waveform, op.pw) *
-            tilt;
-          dry += shaped(i, raw);
-        }
-        break;
-      }
-      case "subtractive":
-      default: {
-        for (let i = 0; i < 3; i++) {
-          const op = ops[i]!;
-          if (!op.enabled) continue;
-          const f = baseHz * semiRatio(op.semi, op.cents);
-          const raw = this.oscs[i]!.process(f, op.waveform, op.pw);
-          dry += shaped(i, raw);
-        }
-        break;
+      // Push links from this op to higher destinations
+      for (const link of patch.links) {
+        if (link.src !== i) continue;
+        const dst = link.dst;
+        if (dst < 0 || dst > 3 || dst === i) continue;
+        const amt = link.amount;
+        const modSig = raw[i]! * amp[i]! * (op.enabled ? 1 : 0);
+        applyLink(link.mode, modSig, amt, dst, fmIn, amIn, rmIn, pdIn, addIn);
       }
     }
 
-    dry *= 0.55 * this.velSmoothed * patch.gain;
-    return dry;
+    // Mix to bus
+    let bus = 0;
+    for (let i = 0; i < 4; i++) {
+      const op = patch.operators[i]!;
+      if (!op.enabled) continue;
+      bus += shaped[i]! * op.outLevel;
+    }
+
+    bus *= 0.45 * this.velSmoothed * patch.gain;
+    return bus;
   }
 }
 
-function semiRatio(semi: number, cents: number): number {
-  return 2 ** ((semi + cents / 100) / 12);
+function applyLink(
+  mode: LinkMode,
+  modSig: number,
+  amount: number,
+  dst: number,
+  fmIn: number[],
+  amIn: number[],
+  rmIn: number[],
+  pdIn: number[],
+  addIn: number[],
+): void {
+  switch (mode) {
+    case "fm":
+      fmIn[dst]! += modSig * amount;
+      break;
+    case "am":
+      amIn[dst]! += modSig * amount * 0.5;
+      break;
+    case "rm":
+      // seed with 1 if first
+      if (rmIn[dst] === 0) rmIn[dst] = 1;
+      rmIn[dst]! *= modSig * amount + (1 - Math.min(amount, 1) * 0.5);
+      break;
+    case "pd":
+      pdIn[dst]! += Math.abs(modSig) * amount * 0.5;
+      break;
+    case "add":
+      addIn[dst]! += modSig * amount * 0.35;
+      break;
+  }
 }

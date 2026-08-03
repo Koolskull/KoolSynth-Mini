@@ -1,6 +1,12 @@
-import type { MasterParams, Patch } from "./types";
-import { defaultPatch, mergeOsc } from "./types";
-import { Voice } from "./voice";
+import type { MasterParams, OpLink, OperatorParams, Patch } from "./types";
+import {
+  algorithmOuts,
+  defaultPatch,
+  linksForAlgorithm,
+  mergeOperator,
+} from "./types";
+import { Voice, type SampleBank } from "./voice";
+import { FxChain } from "./effects";
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
@@ -11,49 +17,82 @@ export class SynthEngine {
   private voices: Voice[] = [];
   private patch: Patch;
   private master: MasterParams = { gain: 0.75, softClip: true };
-  /** note → voice index for matching noteOff */
   private noteMap = new Map<number, number>();
-  /** One-pole DC block */
   private dcX = 0;
   private dcY = 0;
-  /** Smooth poly headroom */
   private polyGain = 1;
   private polyGainTarget = 1;
-
-  /** Pitch bend target −1…+1 (from keys / MIDI wheel) */
   private bendTarget = 0;
-  /** Smoothed bend amount (legato) */
   private bendCurrent = 0;
+  private bank: SampleBank = new Map();
+  private fx = new FxChain();
 
   constructor(sampleRate: number, patch?: Patch) {
     this.sampleRate = sampleRate;
     this.patch = patch ?? defaultPatch();
+    this.fx.configure(sampleRate);
     this.ensureVoices();
   }
 
   private ensureVoices(): void {
     const n = this.patch.maxVoices;
     while (this.voices.length < n) {
-      this.voices.push(new Voice(this.sampleRate, this.patch));
+      this.voices.push(new Voice(this.sampleRate, this.patch, this.bank));
     }
-    if (this.voices.length > n) {
-      this.voices.length = n;
-    }
+    if (this.voices.length > n) this.voices.length = n;
+  }
+
+  loadSample(id: string, data: Float32Array, sampleRate: number): void {
+    this.bank.set(id, { data, sampleRate });
+  }
+
+  clearSample(id: string): void {
+    this.bank.delete(id);
   }
 
   setPatch(partial: Partial<Patch>): void {
-    const oscs = partial.oscillators
-      ? ([
-          mergeOsc(this.patch.oscillators[0], partial.oscillators[0] ?? {}),
-          mergeOsc(this.patch.oscillators[1], partial.oscillators[1] ?? {}),
-          mergeOsc(this.patch.oscillators[2], partial.oscillators[2] ?? {}),
-        ] as Patch["oscillators"])
-      : this.patch.oscillators;
+    let operators = this.patch.operators;
+    if (partial.operators) {
+      operators = [
+        mergeOperator(this.patch.operators[0], partial.operators[0] ?? {}),
+        mergeOperator(this.patch.operators[1], partial.operators[1] ?? {}),
+        mergeOperator(this.patch.operators[2], partial.operators[2] ?? {}),
+        mergeOperator(this.patch.operators[3], partial.operators[3] ?? {}),
+      ];
+    }
+
+    let links = partial.links ?? this.patch.links;
+    let algorithm = this.patch.algorithm;
+    if (partial.algorithm !== undefined && partial.algorithm !== this.patch.algorithm) {
+      algorithm = clamp(Math.round(partial.algorithm), 0, 7);
+      // rebuild links from algo, keep modes if same edge count otherwise default FM
+      links = linksForAlgorithm(algorithm);
+      // set default out levels from algo
+      const outs = new Set(algorithmOuts(algorithm));
+      operators = operators.map((op, i) =>
+        mergeOperator(op, { outLevel: outs.has(i) ? Math.max(op.outLevel, 0.7) : 0 }),
+      ) as Patch["operators"];
+    }
+
+    let fx = this.patch.fx;
+    if (partial.fx) {
+      fx = [
+        { ...this.patch.fx[0], ...partial.fx[0] },
+        { ...this.patch.fx[1], ...partial.fx[1] },
+        { ...this.patch.fx[2], ...partial.fx[2] },
+      ];
+    }
 
     this.patch = {
       ...this.patch,
       ...partial,
-      oscillators: oscs,
+      operators,
+      links,
+      algorithm: partial.algorithm !== undefined ? algorithm : this.patch.algorithm,
+      fx,
+      compressor: partial.compressor
+        ? { ...this.patch.compressor, ...partial.compressor }
+        : this.patch.compressor,
       pitchBendRange:
         partial.pitchBendRange !== undefined
           ? clamp(partial.pitchBendRange, 0, 24)
@@ -66,6 +105,19 @@ export class SynthEngine {
     this.ensureVoices();
   }
 
+  setLink(index: number, partial: Partial<OpLink>): void {
+    const links = this.patch.links.map((l, i) =>
+      i === index ? { ...l, ...partial } : l,
+    );
+    this.patch = { ...this.patch, links };
+  }
+
+  setOperator(index: 0 | 1 | 2 | 3, partial: Partial<OperatorParams>): void {
+    const operators = [...this.patch.operators] as Patch["operators"];
+    operators[index] = mergeOperator(operators[index], partial);
+    this.patch = { ...this.patch, operators };
+  }
+
   getPatch(): Patch {
     return this.patch;
   }
@@ -74,10 +126,6 @@ export class SynthEngine {
     this.master = { ...this.master, ...m };
   }
 
-  /**
-   * Set pitch-bend amount in −1…+1.
-   * Actual detune = amount × pitchBendRange semitones, smoothed by pitchBendLegato.
-   */
   setPitchBend(amount: number): void {
     this.bendTarget = clamp(amount, -1, 1);
   }
@@ -145,7 +193,6 @@ export class SynthEngine {
   process(outL: Float32Array, outR: Float32Array): void {
     const n = outL.length;
     const g = this.master.gain;
-    const clip = this.master.softClip;
     const polySmooth = 1 - Math.exp(-1 / (0.008 * this.sampleRate));
     const legato = Math.max(this.patch.pitchBendLegato, 0.001);
     const bendSmooth = 1 - Math.exp(-1 / (legato * this.sampleRate));
@@ -154,7 +201,6 @@ export class SynthEngine {
     for (let i = 0; i < n; i++) {
       this.polyGain += (this.polyGainTarget - this.polyGain) * polySmooth;
       this.bendCurrent += (this.bendTarget - this.bendCurrent) * bendSmooth;
-
       const bendRatio = 2 ** ((this.bendCurrent * range) / 12);
 
       let s = 0;
@@ -163,14 +209,17 @@ export class SynthEngine {
       }
       s *= g * this.polyGain;
 
+      // DC block
       const y = s - this.dcX + 0.995 * this.dcY;
       this.dcX = s;
       this.dcY = y;
       s = y;
 
-      if (clip) {
-        s = Math.tanh(s * 0.95);
-      }
+      // 3 FX slots → compressor/limiter
+      s = this.fx.process(s, this.patch.fx, this.patch.compressor);
+
+      if (this.master.softClip) s = Math.tanh(s * 0.9);
+
       outL[i] = s;
       outR[i] = s;
     }

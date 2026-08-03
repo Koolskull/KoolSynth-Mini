@@ -1,5 +1,14 @@
-import type { MasterParams, Patch } from "../../../../packages/dsp/src/types";
-import { defaultPatch, mergeOsc } from "../../../../packages/dsp/src/types";
+import type {
+  MasterParams,
+  OperatorParams,
+  Patch,
+} from "../../../../packages/dsp/src/types";
+import {
+  algorithmOuts,
+  defaultPatch,
+  linksForAlgorithm,
+  mergeOperator,
+} from "../../../../packages/dsp/src/types";
 import type { WorkletInMessage } from "../../../../packages/worklet/src/processor";
 
 export type EngineStatus = "idle" | "loading" | "ready" | "error";
@@ -11,8 +20,8 @@ export class EngineHost {
   patch: Patch = defaultPatch();
   master: MasterParams = { gain: 0.75, softClip: true };
   error: string | null = null;
-  /** Last pitch-bend target we sent (−1…1) */
   pitchBend = 0;
+  samples: Record<string, string> = {};
 
   private listeners = new Set<() => void>();
 
@@ -33,7 +42,6 @@ export class EngineHost {
 
     try {
       this.ctx = new AudioContext({ latencyHint: "interactive" });
-      // Relative to page URL so GitHub Pages project sites work (/repo/)
       const processorUrl = new URL("processor.js", window.location.href).href;
       await this.ctx.audioWorklet.addModule(processorUrl);
       this.node = new AudioWorkletNode(this.ctx, "koolsynth-mini-processor", {
@@ -46,9 +54,7 @@ export class EngineHost {
       await new Promise<void>((resolve, reject) => {
         const t = setTimeout(() => {
           this.status = "ready";
-          this.post({ type: "loadPatch", patch: this.patch });
-          this.post({ type: "setMaster", master: this.master });
-          this.post({ type: "setPitchBend", amount: this.pitchBend });
+          this.syncAll();
           resolve();
         }, 400);
 
@@ -56,9 +62,7 @@ export class EngineHost {
           if (ev.data?.type === "ready") {
             clearTimeout(t);
             this.status = "ready";
-            this.post({ type: "loadPatch", patch: this.patch });
-            this.post({ type: "setMaster", master: this.master });
-            this.post({ type: "setPitchBend", amount: this.pitchBend });
+            this.syncAll();
             this.emit();
             resolve();
           }
@@ -79,13 +83,19 @@ export class EngineHost {
     }
   }
 
+  private syncAll(): void {
+    this.post({ type: "loadPatch", patch: this.patch });
+    this.post({ type: "setMaster", master: this.master });
+    this.post({ type: "setPitchBend", amount: this.pitchBend });
+  }
+
   async resume(): Promise<void> {
     if (!this.ctx) await this.init();
     if (this.ctx!.state === "suspended") await this.ctx!.resume();
   }
 
-  private post(msg: WorkletInMessage): void {
-    this.node?.port.postMessage(msg);
+  private post(msg: WorkletInMessage, transfer?: Transferable[]): void {
+    this.node?.port.postMessage(msg, transfer ?? []);
   }
 
   noteOn(note: number, velocity = 0.85): void {
@@ -100,7 +110,6 @@ export class EngineHost {
     this.post({ type: "allNotesOff" });
   }
 
-  /** −1…+1; engine applies range × amount with legato smoothing */
   setPitchBend(amount: number): void {
     const a = Math.min(1, Math.max(-1, amount));
     this.pitchBend = a;
@@ -108,27 +117,57 @@ export class EngineHost {
   }
 
   setPatch(partial: Partial<Patch>): void {
-    const oscs = partial.oscillators
-      ? ([
-          mergeOsc(this.patch.oscillators[0], partial.oscillators[0] ?? {}),
-          mergeOsc(this.patch.oscillators[1], partial.oscillators[1] ?? {}),
-          mergeOsc(this.patch.oscillators[2], partial.oscillators[2] ?? {}),
-        ] as Patch["oscillators"])
-      : this.patch.oscillators;
+    if (partial.algorithm !== undefined && partial.algorithm !== this.patch.algorithm) {
+      const algorithm = Math.max(0, Math.min(7, Math.round(partial.algorithm)));
+      const links = linksForAlgorithm(algorithm);
+      const outs = new Set(algorithmOuts(algorithm));
+      const operators = this.patch.operators.map((op, i) =>
+        mergeOperator(op, { outLevel: outs.has(i) ? Math.max(op.outLevel, 0.7) : 0 }),
+      ) as Patch["operators"];
+      this.patch = { ...this.patch, algorithm, links, operators };
+      this.post({ type: "setPatch", patch: { algorithm, links, operators } });
+      this.emit();
+      return;
+    }
 
-    this.patch = {
-      ...this.patch,
-      ...partial,
-      oscillators: oscs,
-    };
+    if (partial.operators) {
+      const ops = [
+        mergeOperator(this.patch.operators[0], partial.operators[0] ?? {}),
+        mergeOperator(this.patch.operators[1], partial.operators[1] ?? {}),
+        mergeOperator(this.patch.operators[2], partial.operators[2] ?? {}),
+        mergeOperator(this.patch.operators[3], partial.operators[3] ?? {}),
+      ] as Patch["operators"];
+      this.patch = { ...this.patch, ...partial, operators: ops };
+    } else if (partial.fx) {
+      this.patch = {
+        ...this.patch,
+        ...partial,
+        fx: [
+          { ...this.patch.fx[0], ...partial.fx[0] },
+          { ...this.patch.fx[1], ...partial.fx[1] },
+          { ...this.patch.fx[2], ...partial.fx[2] },
+        ],
+      };
+    } else if (partial.compressor) {
+      this.patch = {
+        ...this.patch,
+        ...partial,
+        compressor: { ...this.patch.compressor, ...partial.compressor },
+      };
+    } else {
+      this.patch = { ...this.patch, ...partial };
+    }
+
     this.post({ type: "setPatch", patch: this.patch });
     this.emit();
   }
 
-  setOsc(index: 0 | 1 | 2, partial: Partial<Patch["oscillators"][0]>): void {
-    const next = [...this.patch.oscillators] as Patch["oscillators"];
-    next[index] = mergeOsc(next[index], partial);
-    this.setPatch({ oscillators: next });
+  setOperator(index: 0 | 1 | 2 | 3, partial: Partial<OperatorParams>): void {
+    const operators = [...this.patch.operators] as Patch["operators"];
+    operators[index] = mergeOperator(operators[index], partial);
+    this.patch = { ...this.patch, operators };
+    this.post({ type: "setPatch", patch: { operators } });
+    this.emit();
   }
 
   setMaster(m: Partial<MasterParams>): void {
@@ -136,7 +175,24 @@ export class EngineHost {
     this.post({ type: "setMaster", master: this.master });
     this.emit();
   }
+
+  async loadSampleFile(file: File, id?: string): Promise<string> {
+    await this.resume();
+    const sid = id ?? `smp_${Date.now().toString(36)}`;
+    const ab = await file.arrayBuffer();
+    if (!this.ctx) throw new Error("no audio context");
+    const audio = await this.ctx.decodeAudioData(ab.slice(0));
+    const ch = audio.getChannelData(0);
+    const copy = new Float32Array(ch.length);
+    copy.set(ch);
+    this.post(
+      { type: "loadSample", id: sid, sampleRate: audio.sampleRate, channelData: copy },
+      [copy.buffer],
+    );
+    this.samples[sid] = file.name;
+    this.emit();
+    return sid;
+  }
 }
 
-/** Singleton host for the app */
 export const engineHost = new EngineHost();

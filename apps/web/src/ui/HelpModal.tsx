@@ -17,39 +17,35 @@ export function HelpModal({ open, onClose }: Props) {
         </header>
         <div className="help-modal-body">
           <section>
-            <h3>Audio</h3>
-            <p>Press Start Audio (or play a key) to unlock sound. Panic silences all notes.</p>
-          </section>
-          <section>
-            <h3>Keyboard (Renoise map)</h3>
-            <p>
-              Lower octave: Z S X D C V G B H N J M , . /
-              <br />
-              Upper octave: Q 2 W 3 E R 5 T 6 Y 7 U I 9 O 0 P
-            </p>
-          </section>
-          <section>
-            <h3>Arrows</h3>
-            <p>
-              ↑ / ↓ — change octave
-              <br />
-              ← / → — pitch bend (hold). Range &amp; glide: PB Rng / PB Leg knobs.
-            </p>
-          </section>
-          <section>
-            <h3>MIDI</h3>
-            <p>All inputs listened by default. Pitch wheel uses the same bend range/legato.</p>
-          </section>
-          <section>
             <h3>Operators</h3>
             <p>
-              Three ops with wave, level, ratio/mod, own amp ADSR, and own filter + filter ADSR.
-              Modes: subtractive, FM, phase distortion (PD), additive.
+              Four operators (OP1–4). Each can be wave, one-shot sample, or granular.
+              Load audio per-op when using sample/grain. Each has amp ADSR, filter + filter env, and Out mix.
+            </p>
+          </section>
+          <section>
+            <h3>Algorithm · Links</h3>
+            <p>
+              A0–A7 are Genesis-style 4-op connection presets. Each edge OP→OP has a synthesis mode
+              (fm / am / rm / pd / add) and an amount knob. Out level on each operator feeds the bus.
+            </p>
+          </section>
+          <section>
+            <h3>Master FX</h3>
+            <p>
+              Three serial FX slots: reverb, delay, chorus, phaser, distortion (or none), then a
+              compressor / soft limiter into the output.
+            </p>
+          </section>
+          <section>
+            <h3>Keyboard</h3>
+            <p>
+              Renoise map: Z-row lower, Q-row upper. ↑/↓ octave, ←/→ pitch bend. MIDI notes + wheel.
             </p>
           </section>
           <section>
             <h3>Knobs</h3>
-            <p>Drag up / right to increase, down / left to decrease.</p>
+            <p>Drag up / right to increase.</p>
           </section>
         </div>
       </div>
