@@ -329,20 +329,80 @@ select {
   }
 }
 
-/* DX7-style algo picker — compact pixel diagrams */
+/* DX7-style algo: single box left, expands to pick */
 .panel-algo {
   padding: 8px 10px;
+  overflow: visible;
 }
 
-.panel-algo h2 {
-  margin-bottom: 8px;
+.algo-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.algo-bar-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.algo-bar-label {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
 }
 
 .algo-picker {
+  position: relative;
+  display: inline-block;
+  z-index: 20;
+}
+
+.algo-trigger {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 5px 3px;
+  margin: 0;
+  background: #000;
+  border: 1px solid var(--fg);
+  cursor: pointer;
+  color: var(--fg);
+  min-width: 44px;
+}
+
+.algo-trigger:hover {
+  background: #0a0a0a;
+}
+
+.algo-picker.is-open .algo-trigger {
+  background: #fff;
+  color: #000;
+  border-bottom-color: #fff;
+}
+
+.algo-picker.is-open .algo-trigger .algo-thumb-num {
+  color: #000;
+}
+
+.algo-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 0;
   border: 1px solid var(--fg);
+  background: #000;
+  z-index: 30;
+  min-width: 168px;
+  box-shadow: 4px 4px 0 #000;
 }
 
 .algo-thumb {
@@ -355,18 +415,22 @@ select {
   background: #000;
   border: none;
   border-right: 1px solid var(--fg);
+  border-bottom: 1px solid var(--fg);
   cursor: pointer;
   color: var(--fg);
-  flex: 1 1 0;
-  min-width: 42px;
+  min-width: 40px;
 }
 
-.algo-thumb:last-child {
+.algo-thumb:nth-child(4n) {
   border-right: none;
 }
 
+.algo-thumb:nth-child(n + 5) {
+  border-bottom: none;
+}
+
 .algo-thumb:hover {
-  background: #0a0a0a;
+  background: #111;
 }
 
 .algo-thumb.is-active {
@@ -402,8 +466,9 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 8px;
   align-items: flex-end;
+  flex: 1;
+  min-width: 0;
 }
 
 .link-chip {

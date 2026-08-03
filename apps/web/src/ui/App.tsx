@@ -95,44 +95,48 @@ export function App() {
 
       <div className="main">
         <section className="panel panel-algo">
-          <h2>Algo</h2>
-          <AlgoPicker
-            algorithm={patch.algorithm}
-            onSelect={(a) => engineHost.setPatch({ algorithm: a })}
-          />
-          {patch.links.length > 0 && (
-            <div className="links-compact">
-              {patch.links.map((link, i) => (
-                <div className="link-chip" key={`${link.src}-${link.dst}-${i}`}>
-                  <span className="link-chip-id">
-                    {link.src + 1}→{link.dst + 1}
-                  </span>
-                  <select
-                    className="osc-wave link-mode"
-                    value={link.mode}
-                    onChange={(e) => setLink(i, e.target.value as LinkMode)}
-                    title="Link mode"
-                  >
-                    {LINK_MODES.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                  <PixelKnob
-                    size={36}
-                    label="Amt"
-                    value={link.amount}
-                    min={0}
-                    max={4}
-                    step={0.01}
-                    displayValue={link.amount.toFixed(1)}
-                    onChange={(v) => setLink(i, undefined, v)}
-                  />
-                </div>
-              ))}
+          <div className="algo-bar">
+            <div className="algo-bar-left">
+              <span className="algo-bar-label">Algo</span>
+              <AlgoPicker
+                algorithm={patch.algorithm}
+                onSelect={(a) => engineHost.setPatch({ algorithm: a })}
+              />
             </div>
-          )}
+            {patch.links.length > 0 && (
+              <div className="links-compact">
+                {patch.links.map((link, i) => (
+                  <div className="link-chip" key={`${link.src}-${link.dst}-${i}`}>
+                    <span className="link-chip-id">
+                      {link.src + 1}→{link.dst + 1}
+                    </span>
+                    <select
+                      className="osc-wave link-mode"
+                      value={link.mode}
+                      onChange={(e) => setLink(i, e.target.value as LinkMode)}
+                      title="Link mode"
+                    >
+                      {LINK_MODES.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                    <PixelKnob
+                      size={36}
+                      label="Amt"
+                      value={link.amount}
+                      min={0}
+                      max={4}
+                      step={0.01}
+                      displayValue={link.amount.toFixed(1)}
+                      onChange={(v) => setLink(i, undefined, v)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         <section className="panel">

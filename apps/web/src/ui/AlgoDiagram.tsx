@@ -2,7 +2,7 @@
  * DX7 / OG-FM style algorithm diagrams — hard pixel boxes + 1px flow lines.
  * Ops labeled 1–4 (internal indices 0–3). Carriers feed the bottom OUT rail.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { algorithmEdges, algorithmOuts } from "../../../../packages/dsp/src/types";
 
 /** Grid units (each cell is SCALE px). Diagram is GW × GH cells. */
@@ -290,26 +290,68 @@ interface PickerProps {
   onSelect: (algo: number) => void;
 }
 
+/**
+ * Collapsed: one small box with the active diagram.
+ * Tap → expands to pick 0–7; choosing one collapses again.
+ */
 export function AlgoPicker({ algorithm, onSelect }: PickerProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDoc);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <div className="algo-picker" role="listbox" aria-label="Algorithm">
-      {Array.from({ length: 8 }, (_, a) => {
-        const sel = algorithm === a;
-        return (
-          <button
-            key={a}
-            type="button"
-            role="option"
-            aria-selected={sel}
-            className={`algo-thumb${sel ? " is-active" : ""}`}
-            title={`Algorithm ${a}`}
-            onClick={() => onSelect(a)}
-          >
-            <span className="algo-thumb-num">{a}</span>
-            <AlgoDiagram algo={a} selected={sel} />
-          </button>
-        );
-      })}
+    <div className={`algo-picker${open ? " is-open" : ""}`} ref={rootRef}>
+      <button
+        type="button"
+        className="algo-trigger"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        title={`Algorithm ${algorithm} — tap to change`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="algo-thumb-num">{algorithm}</span>
+        <AlgoDiagram algo={algorithm} selected />
+      </button>
+
+      {open && (
+        <div className="algo-menu" role="listbox" aria-label="Algorithms">
+          {Array.from({ length: 8 }, (_, a) => {
+            const sel = algorithm === a;
+            return (
+              <button
+                key={a}
+                type="button"
+                role="option"
+                aria-selected={sel}
+                className={`algo-thumb${sel ? " is-active" : ""}`}
+                title={`Algorithm ${a}`}
+                onClick={() => {
+                  onSelect(a);
+                  setOpen(false);
+                }}
+              >
+                <span className="algo-thumb-num">{a}</span>
+                <AlgoDiagram algo={a} selected={sel} />
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
