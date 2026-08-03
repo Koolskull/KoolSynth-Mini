@@ -1,14 +1,23 @@
+import { useEffect } from "react";
+
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
 export function HelpModal({ open, onClose }: Props) {
+  useEffect(() => {
+    if (!open) return;
+    document.body.classList.add("submenu-open");
+    return () => document.body.classList.remove("submenu-open");
+  }, [open]);
+
   if (!open) return null;
 
   return (
     <div className="help-overlay" role="dialog" aria-modal="true" aria-label="Help">
-      <div className="help-modal">
+      <button type="button" className="submenu-scrim" aria-label="Close help" onClick={onClose} />
+      <div className="help-modal submenu-panel">
         <header className="help-modal-head">
           <h2>KoolSynth Mini</h2>
           <button type="button" className="btn help-close" onClick={onClose} aria-label="Close">
@@ -49,7 +58,6 @@ export function HelpModal({ open, onClose }: Props) {
           </section>
         </div>
       </div>
-      <button type="button" className="help-backdrop" aria-label="Close help" onClick={onClose} />
     </div>
   );
 }

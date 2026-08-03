@@ -291,16 +291,14 @@ export function AlgoPicker({ algorithm, onSelect }: PickerProps) {
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
-    document.addEventListener("pointerdown", onDoc);
+    // Dim the rest of the app; block scroll behind menu
+    document.body.classList.add("submenu-open");
     window.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("pointerdown", onDoc);
+      document.body.classList.remove("submenu-open");
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -320,28 +318,36 @@ export function AlgoPicker({ algorithm, onSelect }: PickerProps) {
       </button>
 
       {open && (
-        <div className="algo-menu" role="listbox" aria-label="Algorithms">
-          {Array.from({ length: 8 }, (_, a) => {
-            const sel = algorithm === a;
-            return (
-              <button
-                key={a}
-                type="button"
-                role="option"
-                aria-selected={sel}
-                className={`algo-thumb${sel ? " is-active" : ""}`}
-                title={`Algorithm ${a}`}
-                onClick={() => {
-                  onSelect(a);
-                  setOpen(false);
-                }}
-              >
-                <span className="algo-thumb-num">{a}</span>
-                <AlgoDiagram algo={a} selected={sel} />
-              </button>
-            );
-          })}
-        </div>
+        <>
+          <button
+            type="button"
+            className="submenu-scrim"
+            aria-label="Close algorithm menu"
+            onClick={() => setOpen(false)}
+          />
+          <div className="algo-menu submenu-panel" role="listbox" aria-label="Algorithms">
+            {Array.from({ length: 8 }, (_, a) => {
+              const sel = algorithm === a;
+              return (
+                <button
+                  key={a}
+                  type="button"
+                  role="option"
+                  aria-selected={sel}
+                  className={`algo-thumb${sel ? " is-active" : ""}`}
+                  title={`Algorithm ${a}`}
+                  onClick={() => {
+                    onSelect(a);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="algo-thumb-num">{a}</span>
+                  <AlgoDiagram algo={a} selected={sel} />
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

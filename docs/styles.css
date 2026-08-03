@@ -357,10 +357,48 @@ select {
   color: var(--dim);
 }
 
+/* Shared temporary submenu focus treatment */
+.submenu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.78);
+  /* slight vignette so the menu pops */
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.55);
+}
+
+.submenu-panel {
+  border: 3px solid #ffffff !important;
+  box-shadow:
+    0 0 0 1px #000,
+    6px 6px 0 #000,
+    0 0 24px rgba(255, 255, 255, 0.12);
+  background: #000;
+  z-index: 50;
+}
+
+body.submenu-open {
+  overflow: hidden;
+}
+
+body.submenu-open .app > :not(.help-overlay) {
+  /* extra dim under scrim for anything the scrim doesn't cover */
+  filter: none;
+}
+
 .algo-picker {
   position: relative;
   display: inline-block;
   z-index: 20;
+}
+
+.algo-picker.is-open {
+  z-index: 55;
 }
 
 .algo-trigger {
@@ -393,16 +431,13 @@ select {
 
 .algo-menu {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   left: 0;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0;
-  border: 1px solid var(--fg);
-  background: #000;
-  z-index: 30;
   min-width: 360px;
-  box-shadow: 4px 4px 0 #000;
+  z-index: 50;
 }
 
 .algo-thumb {
@@ -614,28 +649,24 @@ select {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  pointer-events: none;
 }
 
-.help-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.72);
-  border: none;
-  cursor: pointer;
-  padding: 0;
+.help-overlay .submenu-scrim {
+  pointer-events: auto;
+  z-index: 100;
 }
 
 .help-modal {
   position: relative;
-  z-index: 1;
+  z-index: 101;
   width: min(440px, 100%);
   max-height: min(80dvh, 560px);
   overflow: auto;
-  background: #000;
-  border: 2px solid #fff;
   color: #fff;
   display: flex;
   flex-direction: column;
+  pointer-events: auto;
 }
 
 .help-modal-head {
